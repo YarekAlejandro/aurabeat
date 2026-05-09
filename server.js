@@ -165,11 +165,12 @@ app.get('/api/spotify/discover', async (req, res) => {
     } else {
       console.error('Spotify API Error en discover (recommendations):', await recRes.text());
       // Fallback a algunas canciones de prueba si Spotify bloquea
+      const dummyMp3 = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
       return res.json({
         success: true,
         tracks: [
-          { id: '1', title: 'Midnight City', artist: 'M83', album: 'Hurry Up, We\'re Dreaming', artwork: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop', previewUrl: null },
-          { id: '2', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', artwork: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop', previewUrl: null }
+          { id: '1', title: 'Midnight City', artist: 'M83', album: 'Hurry Up, We\'re Dreaming', artwork: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop', previewUrl: dummyMp3 },
+          { id: '2', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', artwork: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop', previewUrl: dummyMp3 }
         ],
         aiDescription: "Hemos generado estas frecuencias alternas ya que tus datos profundos están protegidos temporalmente."
       });
@@ -375,6 +376,17 @@ app.post('/api/recommend', async (req, res) => {
     rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
     
     const playlistData = JSON.parse(rawText);
+
+    // Añadir previewUrl falso a las recomendaciones de Gemini para que el reproductor funcione
+    const dummyMp3 = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3";
+    if (playlistData.playlist) {
+      playlistData.playlist = playlistData.playlist.map((track, i) => ({
+        ...track,
+        id: `gemini-${i}`,
+        artwork: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop',
+        previewUrl: dummyMp3
+      }));
+    }
 
     res.json({
       success: true,
