@@ -17,9 +17,13 @@ export function MusicPlayer({ currentSong, isPlaying, setIsPlaying, progress, vo
   const [duration, setDuration] = useState('0:30'); // Spotify previews are 30s
 
   useEffect(() => {
+    console.log('MusicPlayer: Song changed:', currentSong?.title, 'URL:', currentSong?.previewUrl);
     if (audioRef.current && currentSong?.previewUrl) {
       if (isPlaying) {
-        audioRef.current.play().catch(() => setIsPlaying(false));
+        audioRef.current.play().catch((err) => {
+          console.error('Playback failed:', err);
+          setIsPlaying(false);
+        });
       } else {
         audioRef.current.pause();
       }

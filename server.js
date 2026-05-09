@@ -241,22 +241,14 @@ app.get('/api/spotify/profile-analysis', async (req, res) => {
     const genresArray = [...new Set(topData.items.flatMap(a => a.genres))];
     const topGenres = genresArray.slice(0, 5);
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `Actúa como un psicoanalista musical experto. El usuario escucha principalmente a: ${artistNames}. Sus géneros top son: ${topGenres.join(', ')}.
-Redacta 3 "Tarjetas de Curiosidades Musicales" describiendo su personalidad musical.
-Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
-[
-  { "title": "Tu Vibra Principal", "desc": "Descripción corta y poética de tu vibra." },
-  { "title": "El Patrón Oculto", "desc": "Una curiosidad sobre por qué escuchas esos géneros." },
-  { "title": "Tu Escenario Ideal", "desc": "El lugar o momento perfecto para tu banda sonora." }
-]`;
-    
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
     
-    const cards = JSON.parse(result.response.text());
+    let rawText = result.response.text();
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const cards = JSON.parse(rawText);
 
     res.json({ success: true, cards, topGenres });
   } catch (error) {
@@ -299,8 +291,10 @@ app.get('/api/generate-questions', async (req, res) => {
       generationConfig: { responseMimeType: "application/json" }
     });
 
-    const data = JSON.parse(result.response.text());
-    res.json({ success: true, data: data.questions });
+    let rawText = result.response.text();
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const data = JSON.parse(rawText);
+    res.json({ success: true, data: data.questions || data });
 
   } catch (error) {
     res.status(500).json({ success: false, error: 'Error al generar preguntas.' });
@@ -309,6 +303,7 @@ app.get('/api/generate-questions', async (req, res) => {
 
 // ENDPOINT 2: Recomendar Música (Con Spotify Context)
 app.post('/api/recommend', async (req, res) => {
+  console.log('--- Nueva solicitud de Playlist Mágica ---');
   try {
     const { answers, spotifyToken, selectedGenres, profileAnalysis } = req.body;
     const userContext = getSimulatedContext();
@@ -383,11 +378,13 @@ app.post('/api/recommend', async (req, res) => {
       playlistData.playlist = playlistData.playlist.map((track, i) => ({
         ...track,
         id: `gemini-${i}`,
-        artwork: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop',
-        previewUrl: dummyMp3
+        artwork: track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop',
+        previewUrl: track.previewUrl || dummyMp3,
+        duration: track.duration || '0:30'
       }));
     }
 
+    console.log('Playlist generada con éxito:', playlistData.playlist.length, 'canciones');
     res.json({
       success: true,
       data: playlistData
