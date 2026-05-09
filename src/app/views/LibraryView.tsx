@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Music, Play } from 'lucide-react';
+import { Loader2, Music, Play, Pause } from 'lucide-react';
 
-export function LibraryView() {
+interface LibraryViewProps {
+  onPlaySong: (track: any) => void;
+}
+
+export function LibraryView({ onPlaySong }: LibraryViewProps) {
   const [tracks, setTracks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [playingId, setPlayingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLibrary = async () => {
@@ -28,6 +33,11 @@ export function LibraryView() {
     };
     fetchLibrary();
   }, []);
+
+  const handlePlay = (track: any) => {
+    setPlayingId(track.id);
+    onPlaySong(track);
+  };
 
   if (isLoading) {
     return (
@@ -56,20 +66,30 @@ export function LibraryView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
-        {tracks.map((track, idx) => (
-          <div key={`${track.id}-${idx}`} className="flex items-center gap-4 p-3 rounded-xl bg-[#1A1A1A] border border-[#27272A] hover:bg-[#27272A] transition-colors group cursor-pointer">
-            <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-              <img src={track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=100&h=100&fit=crop'} alt={track.title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Play className="w-6 h-6 text-white fill-white" />
+        {tracks.map((track, idx) => {
+          const isCurrentlyPlaying = playingId === track.id;
+          return (
+            <div
+              key={`${track.id}-${idx}`}
+              onClick={() => handlePlay(track)}
+              className="flex items-center gap-4 p-3 rounded-xl bg-[#1A1A1A] border border-[#27272A] hover:bg-[#27272A] transition-colors group cursor-pointer"
+            >
+              <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                <img src={track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=100&h=100&fit=crop'} alt={track.title} className="w-full h-full object-cover" />
+                <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isCurrentlyPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {isCurrentlyPlaying
+                    ? <Pause className="w-6 h-6 text-cyan-400 fill-cyan-400" />
+                    : <Play className="w-6 h-6 text-white fill-white" />
+                  }
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className={`font-medium text-sm truncate ${isCurrentlyPlaying ? 'text-cyan-400' : 'text-white'}`}>{track.title}</h4>
+                <p className="text-[#A1A1AA] text-xs truncate">{track.artist}</p>
               </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-white font-medium text-sm truncate">{track.title}</h4>
-              <p className="text-[#A1A1AA] text-xs truncate">{track.artist}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

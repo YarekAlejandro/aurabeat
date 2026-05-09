@@ -65,6 +65,18 @@ export function DashboardView({ onLogout }: DashboardViewProps) {
     }
   };
 
+  const handlePlaySong = (track: any) => {
+    // Ensure the track has a dummy preview if needed
+    const dummyMp3 = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+    const trackWithAudio = {
+      ...track,
+      previewUrl: track.previewUrl || dummyMp3,
+    };
+    setCurrentSong(trackWithAudio);
+    setIsPlaying(true);
+    setProgress(0);
+  };
+
   return (
     <div className="flex w-full h-screen bg-[#050505] overflow-hidden animate-in fade-in duration-500">
       
@@ -172,7 +184,7 @@ export function DashboardView({ onLogout }: DashboardViewProps) {
 
           {activeTab === 'library' && (
             <div className="max-w-5xl mx-auto">
-              <LibraryView />
+              <LibraryView onPlaySong={handlePlaySong} />
             </div>
           )}
 
@@ -184,7 +196,7 @@ export function DashboardView({ onLogout }: DashboardViewProps) {
 
           {activeTab === 'discover' && (
             <div className="max-w-5xl mx-auto">
-              <DiscoverView />
+              <DiscoverView onPlaySong={handlePlaySong} />
             </div>
           )}
 

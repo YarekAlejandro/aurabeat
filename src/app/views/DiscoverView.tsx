@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Sparkles, Play } from 'lucide-react';
+import { Loader2, Sparkles, Play, Pause } from 'lucide-react';
 
-export function DiscoverView() {
+interface DiscoverViewProps {
+  onPlaySong: (track: any) => void;
+}
+
+export function DiscoverView({ onPlaySong }: DiscoverViewProps) {
   const [tracks, setTracks] = useState<any[]>([]);
   const [aiDescription, setAiDescription] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [playingId, setPlayingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -30,6 +35,11 @@ export function DiscoverView() {
     };
     fetchRecommendations();
   }, []);
+
+  const handlePlay = (track: any) => {
+    setPlayingId(track.id);
+    onPlaySong(track);
+  };
 
   if (isLoading) {
     return (
@@ -73,22 +83,32 @@ export function DiscoverView() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
-        {tracks.map((track, idx) => (
-          <div key={`${track.id}-${idx}`} className="flex flex-col gap-3 p-4 rounded-2xl bg-[#1A1A1A] border border-[#27272A] hover:bg-[#27272A] hover:-translate-y-1 transition-all group cursor-pointer">
-            <div className="relative aspect-square rounded-xl overflow-hidden w-full shadow-lg">
-              <img src={track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop'} alt={track.title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-12 h-12 rounded-full bg-cyan-500 text-black flex items-center justify-center shadow-xl">
-                  <Play className="w-6 h-6 fill-black translate-x-0.5" />
+        {tracks.map((track, idx) => {
+          const isCurrentlyPlaying = playingId === track.id;
+          return (
+            <div
+              key={`${track.id}-${idx}`}
+              onClick={() => handlePlay(track)}
+              className="flex flex-col gap-3 p-4 rounded-2xl bg-[#1A1A1A] border border-[#27272A] hover:bg-[#27272A] hover:-translate-y-1 transition-all group cursor-pointer"
+            >
+              <div className="relative aspect-square rounded-xl overflow-hidden w-full shadow-lg">
+                <img src={track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop'} alt={track.title} className="w-full h-full object-cover" />
+                <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isCurrentlyPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl ${isCurrentlyPlaying ? 'bg-cyan-400' : 'bg-cyan-500'}`}>
+                    {isCurrentlyPlaying
+                      ? <Pause className="w-6 h-6 fill-black text-black" />
+                      : <Play className="w-6 h-6 fill-black text-black translate-x-0.5" />
+                    }
+                  </div>
                 </div>
               </div>
+              <div>
+                <h4 className={`font-bold text-sm truncate ${isCurrentlyPlaying ? 'text-cyan-400' : 'text-white'}`}>{track.title}</h4>
+                <p className="text-[#A1A1AA] text-xs truncate mt-0.5">{track.artist}</p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-white font-bold text-sm truncate">{track.title}</h4>
-              <p className="text-[#A1A1AA] text-xs truncate mt-0.5">{track.artist}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
