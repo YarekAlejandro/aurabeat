@@ -29,17 +29,18 @@ export function MusicalProfile({ onAnalysisLoaded }: MusicalProfileProps) {
 
   const handleAnalyze = async () => {
     const token = localStorage.getItem('spotifyToken');
-    if (!token) {
-      alert("Necesitas conectar Spotify primero.");
-      return;
-    }
-    
+    // No longer require Spotify - works without it
     setIsAnalyzing(true);
-    setIsExpanded(true); // Auto expand on new analysis
+    setIsExpanded(true);
     try {
-      const response = await fetch('/api/spotify/profile-analysis', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const savedGenresStr = localStorage.getItem('selectedGenres');
+      let genreQuery = '';
+      if (savedGenresStr) {
+        try { genreQuery = JSON.parse(savedGenresStr).join(','); } catch (e) {}
+      }
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const response = await fetch(`/api/spotify/profile-analysis${genreQuery ? `?genres=${encodeURIComponent(genreQuery)}` : ''}`, { headers });
       const data = await response.json();
       if (data.success && data.cards) {
         setCards(data.cards);
@@ -61,7 +62,7 @@ export function MusicalProfile({ onAnalysisLoaded }: MusicalProfileProps) {
       <div className="bg-[#121212]/80 backdrop-blur-xl border border-[#27272A] rounded-3xl p-8 shadow-2xl mb-10 flex flex-col items-center text-center">
         <BrainCircuit className="w-12 h-12 text-cyan-400 mb-4" />
         <h3 className="text-xl font-bold text-white mb-2">Conoce tu mente musical</h3>
-        <p className="text-[#A1A1AA] mb-6 max-w-md">La IA de AuraBeat puede analizar profundamente tu historial y revelar por qué te atraen ciertos sonidos.</p>
+        <p className="text-[#A1A1AA] mb-6 max-w-md">La IA de AuraBeat puede analizar tus gustos musicales y revelar curiosidades sobre tu personalidad sonora.</p>
         <button onClick={handleAnalyze} className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg shadow-cyan-500/20 flex items-center gap-2">
           <Sparkles className="w-5 h-5" />
           Analizar mi Perfil Musical con IA
@@ -102,11 +103,11 @@ export function MusicalProfile({ onAnalysisLoaded }: MusicalProfileProps) {
       {isExpanded && !isAnalyzing && (
         <div className="p-6 md:p-8 relative z-10 animate-in slide-in-from-top-4 duration-300">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {cards.map((card, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {cards.map((card: any, i) => (
               <div key={i} className="bg-[#27272A]/30 backdrop-blur-md border border-[#3F3F46]/50 rounded-2xl p-6 hover:bg-[#27272A]/50 transition-colors">
                 <h4 className="text-cyan-400 font-bold mb-2 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" /> {card.title}
+                  <span className="text-xl">{card.emoji || '🎵'}</span> {card.title}
                 </h4>
                 <p className="text-[#E4E4E7] text-sm leading-relaxed">{card.desc}</p>
               </div>

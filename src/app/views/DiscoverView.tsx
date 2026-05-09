@@ -13,19 +13,19 @@ export function DiscoverView({ onPlaySong }: DiscoverViewProps) {
 
   useEffect(() => {
     const fetchRecommendations = async () => {
-      const token = localStorage.getItem('spotifyToken');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
       try {
-        const response = await fetch('/api/spotify/discover', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // Get saved genres from localStorage
+        const savedGenresStr = localStorage.getItem('selectedGenres');
+        let genreQuery = '';
+        if (savedGenresStr) {
+          try { genreQuery = JSON.parse(savedGenresStr).join(','); } catch (e) {}
+        }
+        
+        const response = await fetch(`/api/discover${genreQuery ? `?genres=${encodeURIComponent(genreQuery)}` : ''}`);
         const data = await response.json();
         if (data.success) {
-          setTracks(data.tracks);
-          setAiDescription(data.aiDescription || 'Frecuencias recomendadas para tu perfil.');
+          setTracks(data.tracks || []);
+          setAiDescription(data.aiDescription || 'Frecuencias curadas para ti.');
         }
       } catch (error) {
         console.error("Failed to fetch discovery", error);
@@ -50,25 +50,12 @@ export function DiscoverView({ onPlaySong }: DiscoverViewProps) {
     );
   }
 
-  if (!localStorage.getItem('spotifyToken')) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Sparkles className="w-16 h-16 text-[#27272A] mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">Conecta tu cuenta</h3>
-        <p className="text-[#A1A1AA] max-w-md">Para descubrir música nueva, necesitamos que conectes tu cuenta de Spotify y así analizar tus gustos.</p>
-        <button onClick={() => window.location.href = '/auth/spotify'} className="mt-6 px-6 py-2 bg-[#1DB954] text-black font-bold rounded-full hover:bg-green-400 transition-colors">
-          Conectar Spotify
-        </button>
-      </div>
-    );
-  }
-
   if (tracks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Sparkles className="w-16 h-16 text-[#27272A] mb-4" />
         <h3 className="text-xl font-bold text-white mb-2">Sin recomendaciones aún</h3>
-        <p className="text-[#A1A1AA] max-w-md">No pudimos encontrar recomendaciones basadas en tu perfil actual. ¡Escucha más música y vuelve pronto!</p>
+        <p className="text-[#A1A1AA] max-w-md">No pudimos cargar recomendaciones. Intenta más tarde.</p>
       </div>
     );
   }
@@ -92,15 +79,23 @@ export function DiscoverView({ onPlaySong }: DiscoverViewProps) {
               className="flex flex-col gap-3 p-4 rounded-2xl bg-[#1A1A1A] border border-[#27272A] hover:bg-[#27272A] hover:-translate-y-1 transition-all group cursor-pointer"
             >
               <div className="relative aspect-square rounded-xl overflow-hidden w-full shadow-lg">
-                <img src={track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop'} alt={track.title} className="w-full h-full object-cover" />
+                <img
+                  src={track.artwork || 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop'}
+                  alt={track.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop'; }}
+                />
                 <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${isCurrentlyPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl ${isCurrentlyPlaying ? 'bg-cyan-400' : 'bg-cyan-500'}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl ${isCurrentlyPlaying ? 'bg-cyan-400' : 'bg-white'}`}>
                     {isCurrentlyPlaying
                       ? <Pause className="w-6 h-6 fill-black text-black" />
                       : <Play className="w-6 h-6 fill-black text-black translate-x-0.5" />
                     }
                   </div>
                 </div>
+                {!track.previewUrl && (
+                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-[9px] text-[#A1A1AA]">sin preview</div>
+                )}
               </div>
               <div>
                 <h4 className={`font-bold text-sm truncate ${isCurrentlyPlaying ? 'text-cyan-400' : 'text-white'}`}>{track.title}</h4>
